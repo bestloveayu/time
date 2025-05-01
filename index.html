@@ -1,0 +1,124 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倒數計時按鈕</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        .button-container {
+            text-align: center;
+        }
+        #startButton {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: not-allowed;
+            background-color: #cccccc;
+            border: none;
+            border-radius: 5px;
+            color: #666666;
+            transition: all 0.3s ease;
+        }
+        #startButton.active {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+        }
+        #countdown {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="button-container">
+        <div id="countdown"></div>
+        <button id="startButton" disabled>進入經營規劃</button>
+    </div>
+
+    <script>
+        // 設定倒數計時15分鐘（單位：秒）
+        let timeLeft = 15 * 60;
+
+        // 取得DOM元素
+        const countdownDisplay = document.getElementById('countdown');
+        const startButton = document.getElementById('startButton');
+
+        // 更新倒數計時顯示
+        function updateCountdown() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            countdownDisplay.textContent = `剩餘時間: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                countdownDisplay.textContent = '倒數結束！';
+                startButton.disabled = false;
+                startButton.classList.add('active');
+                startButton.textContent = '進入經營規劃';
+            }
+            timeLeft--;
+        }
+
+        // 按鈕點擊事件
+        startButton.addEventListener('click', () => {
+            if (!startButton.disabled) {
+                alert('已進入經營規劃！');
+                // 在此處可添加進入經營規劃的相關邏輯
+            }
+        });
+
+        // 每秒更新一次倒數計時
+        const timer = setInterval(updateCountdown, 1000);
+        updateCountdown(); // 立即執行一次以避免首次延遲
+    </script>
+</body>
+</html>
